@@ -93,6 +93,13 @@
       (json/parse-string body true))))
 
 
+(defn receipt-print-url
+  [config id]
+  (format
+    "https://lknpd.nalog.ru/api/v1/receipt/%s/%s/print"
+    (:login config) id))
+
+
 (defn add-income
   ([config title amount]
    (add-income config title amount nil))
@@ -121,26 +128,29 @@
             #{"CASH" "WIRE"}
             paymentType)]}
    
-   (api-request config :income :post
+   (->>
+     (api-request config :income :post
      
-     {:paymentType paymentType
-      :ignoreMaxTotalIncomeRestriction ignoreMaxTotalIncomeRestriction
-      
-      :client
-      {:contactPhone contactPhone
-       :displayName displayName
-       :incomeType incomeType
-       :inn inn}
-      
-      :requestTime (util/make-timestamp timezone)
-      :operationTime operationTime
-      :services 
-      [{:name title
-        :amount (util/money-format amount)
-        :quantity quantity}]
+       {:paymentType paymentType
+        :ignoreMaxTotalIncomeRestriction ignoreMaxTotalIncomeRestriction
+        
+        :client
+        {:contactPhone contactPhone
+         :displayName displayName
+         :incomeType incomeType
+         :inn inn}
+        
+        :requestTime (util/make-timestamp timezone)
+        :operationTime operationTime
+        :services 
+        [{:name title
+          :amount (util/money-format amount)
+          :quantity quantity}]
 
-      :totalAmount
-      (util/money-format (* amount quantity))})))
+        :totalAmount
+        (util/money-format (* amount quantity))})
+     :approvedReceiptUuid
+     (receipt-print-url config))))
 
 
 (defn user-info
@@ -149,9 +159,10 @@
 
 
 
+
 (comment
   
-  (def CONFIG {:login "340000000000" :password "..."}) 
+  (def CONFIG {:login (slurp "inn") :password (slurp "pass")}) 
   
   (add-income CONFIG "Сведение" 4000)
   (user-info CONFIG)
